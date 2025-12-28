@@ -17,20 +17,35 @@ pgAdmin: GUI for managing and querying the database.
 
 ---
 
-### Features
+### 🚀 Features
 
-Automated Weather Data ETL: Fetches and stores weather data for UK cities automatically using Airflow.
+Automated Weather Data ETL: Fetches and stores weather data for UK cities automatically.
 
 Hourly & Daily Forecast Storage: Maintains historical and upcoming weather records in PostgreSQL.
 
-Flexible Scheduling: DAGs can be configured to run daily or hourly without extra code changes.
+Flexible Scheduling: DAGs can run daily or hourly with minimal configuration.
 
-Centralized Containerized Setup: Full stack runs seamlessly with Docker Compose for Airflow, Postgres, pgAdmin, and Metabase.
+Centralized Containerized Setup: All services run seamlessly via Docker Compose.
 
-Interactive Dashboards: Explore and visualize weather trends using Metabase dashboards.
+Interactive Dashboards: Explore and visualize weather trends using Metabase.
 
-Database Management Made Easy: Manage tables, queries, and cities metadata via pgAdmin.
+Database Management Made Easy: Manage tables, queries, and city metadata via pgAdmin.
 
-Upsert Logic: Ensures no duplicate data for the same timestamp; updates existing records automatically.
+Upsert Logic: Prevents duplicate data for the same timestamp; updates existing records automatically.
 
-Extensible & Scalable: Easy to add new cities or integrate additional weather APIs in the future.
+Extensible & Scalable: Easily add new cities or integrate additional weather APIs in the future.
+
+🌐 Service Access
+
+Airflow UI: http://localhost:8080
+
+pgAdmin: http://localhost:5050
+
+Metabase: http://localhost:3000
+
+
+Credits
+
+Inspired by [Chiranjeevi Sagi]
+ (YouTube tutorial)
+Developed and extended by Rekha Subramaniyam
