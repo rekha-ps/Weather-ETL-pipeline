@@ -48,8 +48,8 @@ services:
       - "8080:8080"
     command: >
       bash -c "
-      airflow db migrate &&
-      airflow users create --username ${AIRFLOW_USER} --password ${AIRFLOW_PASSWORD} --firstname Airflow --lastname Admin --role Admin --email admin@example.com &&
+      airflow db upgrade &&
+      airflow users create --username ${AIRFLOW_USER} --password ${AIRFLOW_PASSWORD} --firstname Airflow --lastname Admin --role Admin --email admin@example.com || true &&
       airflow webserver & airflow scheduler
       "
     networks:
