@@ -35,16 +35,22 @@ An automated data pipeline to collect, store, and visualize hourly weather data 
 
 - Extensible & Scalable: Easily add new cities or integrate additional weather APIs in the future.
 
-🌐 Service Access
+####🌐 Service Access
 
 - Airflow UI: http://localhost:8080
 
+  Manage and run DAGs for ETL workflows.
+
 - pgAdmin: http://localhost:5050
+
+  Manage and query your PostgreSQL database.
 
 - Metabase: http://localhost:3000
 
+  Explore and visualize your weather data via interactive dashboards.
 
-Credits
+
+#####Credits
 
 - Inspired by Chiranjeevi Sagi
 - Developed and extended by Rekha Subramaniyam
