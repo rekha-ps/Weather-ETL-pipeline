@@ -15,11 +15,6 @@ services:
       - "5432:5432"
     networks:
       - airflow_net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 5s
-      retries: 5
-      start_period: 10s
 
   # pgAdmin for visual management of PostgreSQL
   pgadmin:
@@ -30,18 +25,16 @@ services:
     ports:
       - "5050:80"
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     networks:
       - airflow_net
 
-  # Airflow Webserver
-  airflow-webserver:
+  # Apache Airflow for scheduling and ETL logic
+  airflow:
     image: apache/airflow:2.9.1-python3.11
     restart: always
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
@@ -55,27 +48,12 @@ services:
       - ./dags:/opt/airflow/dags
     ports:
       - "8080:8080"
-    command: webserver
-    networks:
-      - airflow_net
-
-  # Airflow Scheduler
-  airflow-scheduler:
-    image: apache/airflow:2.9.1-python3.11
-    restart: always
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY}
-    volumes:
-      - ./dags:/opt/airflow/dags
-    command: scheduler
+    command: >
+      bash -c "
+      airflow db migrate &&
+      airflow users create --username ${AIRFLOW_USER} --password ${AIRFLOW_PASSWORD} --firstname Airflow --lastname Admin --role Admin --email admin@example.com &&
+      airflow webserver & airflow scheduler
+      "
     networks:
       - airflow_net
 
@@ -85,8 +63,7 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     networks:
       - airflow_net
 
