@@ -46,6 +46,5 @@ An automated data pipeline to collect, store, and visualize hourly weather data 
 
 Credits
 
-Inspired by [Chiranjeevi Sagi]https://www.youtube.com/watch?v=w9Ke-BMettc
- (YouTube tutorial)
-Developed and extended by Rekha Subramaniyam
+- Inspired by Chiranjeevi Sagi
+- Developed and extended by Rekha Subramaniyam
