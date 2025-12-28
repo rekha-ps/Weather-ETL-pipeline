@@ -5,11 +5,15 @@ An automated data pipeline to collect, store, and visualize hourly weather data 
 
 ## Technology ⚙️ Stack
 
--Python & Airflow: Orchestrates ETL workflows, fetching and storing weather data automatically.
--PostgreSQL: Stores both hourly weather data and city metadata for all tracked UK cities.
--Docker Compose: Containerizes the entire pipeline for easy setup and deployment.
--Metabase: Provides interactive dashboards to visualize weather trends.
--pgAdmin: GUI for managing and querying the database.
+- Python & Airflow: Orchestrates ETL workflows, fetching and storing weather data automatically.
+
+- PostgreSQL: Stores both hourly weather data and city metadata for all tracked UK cities.
+
+- Docker Compose: Containerizes the entire pipeline for easy setup and deployment.
+
+- Metabase: Provides interactive dashboards to visualize weather trends.
+
+- pgAdmin: GUI for managing and querying the database.
 
 ---
 
