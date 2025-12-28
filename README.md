@@ -1,73 +1,36 @@
-# 🌦️ Weather Data Pipeline with Airflow, Docker, Postgres & Metabase
+# Weather 🌦️ Data Pipeline with Airflow, Docker, Postgres & Metabase 
 
-This is an end-to-end data pipeline that fetches daily weather data for UK cities using the OpenWeatherMap API, stores it in a PostgreSQL database via Apache Airflow, and visualizes it using Metabase.
+An automated data pipeline to collect, store, and visualize hourly weather data for UK cities using OpenWeatherMap, PostgreSQL, Airflow, and Metabase.
+---
+
+## Technology ⚙️ Stack
+
+Python & Airflow: Orchestrates ETL workflows, fetching and storing weather data automatically.
+
+PostgreSQL: Stores both hourly weather data and city metadata for all tracked UK cities.
+
+Docker Compose: Containerizes the entire pipeline for easy setup and deployment.
+
+Metabase: Provides interactive dashboards to visualize weather trends.
+
+pgAdmin: GUI for managing and querying the database.
 
 ---
 
-## 🛠️ Tech Stack
+### Features
 
-- **Airflow** (ETL Orchestration)
-- **PostgreSQL** (Data Warehouse)
-- **Docker Compose** (Containerized Infra)
-- **Metabase** (Visualization)
-- **pgAdmin** (DB GUI)
+Automated Weather Data ETL: Fetches and stores weather data for UK cities automatically using Airflow.
 
----
+Hourly & Daily Forecast Storage: Maintains historical and upcoming weather records in PostgreSQL.
 
-## 🧱 Architecture Overview
+Flexible Scheduling: DAGs can be configured to run daily or hourly without extra code changes.
 
+Centralized Containerized Setup: Full stack runs seamlessly with Docker Compose for Airflow, Postgres, pgAdmin, and Metabase.
 
----
+Interactive Dashboards: Explore and visualize weather trends using Metabase dashboards.
 
-### 🚀 Features
+Database Management Made Easy: Manage tables, queries, and cities metadata via pgAdmin.
 
-- Fetches real-time weather data for major UK cities using lat/lon
-- Inserts weather data into a normalized Postgres schema
-- Automates and schedules via Airflow
-- Easy setup using Docker Compose
-- Clean dashboard via Metabase
+Upsert Logic: Ensures no duplicate data for the same timestamp; updates existing records automatically.
 
----
-
-### Visual architecture
-
-<p align="center">
-  <img src="images/project_architecture_diagram.png" alt="project architecture diagram" width="75%" height="75%">
-</p>
-
----
-
-## 🧪 Setup Instructions
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/chiranjeevi-sagi/weather-data-pipeline.git
-   cd weather-data-pipeline
-
-2. **Create your .env file**
-   ```bash
-   cp .env.example .env
-
-Then open .env and update the passwords of your choice and replace with your API key.
-
-Sign in/Create account on open weather website and copy your API key. You can get your API key from  [here](https://openweathermap.org/current). 
-
-3. **Start the services**
-   ```bash
-   docker compose up --build
-
-4. **Access the tools**
-- **Airflow:** http://localhost:8080
-- **pgAdmin:** http://localhost:5050
-- **Metabase:** http://localhost:3000
-
-For logging in, use your credentials set in your .env file.
-
-Run your DAGs using Airflow, Query your Database using pgAdmin and Visualize your data using Metabase.
-
-Want to checkout a demo of this project? go to : https://youtu.be/w9Ke-BMettc
-
-Congratulations on completing your ETL project!
-
-## Credits
-Built by [Chiranjeevi Sagi](https://github.com/chiranjeevi-sagi)
+Extensible & Scalable: Easy to add new cities or integrate additional weather APIs in the future.
