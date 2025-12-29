@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # PostgreSQL Database for storing weather data
   postgres:
@@ -50,9 +48,10 @@ services:
       - "8080:8080"
     command: >
       bash -c "
-      airflow db migrate &&
-      airflow users create --username ${AIRFLOW_USER} --password ${AIRFLOW_PASSWORD} --firstname Airflow --lastname Admin --role Admin --email admin@example.com &&
-      airflow webserver & airflow scheduler
+      airflow db init &&
+      airflow users create --username ${AIRFLOW_USER} --password ${AIRFLOW_PASSWORD} --firstname Airflow --lastname Admin --role Admin --email admin@example.com || true &&
+      airflow scheduler &
+      airflow webserver
       "
     networks:
       - airflow_net
