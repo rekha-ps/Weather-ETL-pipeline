@@ -1,3 +1,5 @@
+from psycopg2 import connect, OperationalError
+from psycopg2.extras import execute_batch
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
@@ -6,102 +8,131 @@ import psycopg2
 import os
 import logging
 
-API_KEY = os.getenv("OPENWEATHER_API_KEY")
-
-if not API_KEY:
-    raise ValueError("OPENWEATHER_API_KEY not set")
-
 
 # Fetch hourly forecast
 def fetch_hourly_forecast(lat, lon, city_name):
+    """
+    Fetch 3-hourly weather forecast from OpenWeather for a given city.
+    Returns a list of dictionaries ready for PostgreSQL insertion.
+    """
+    API_KEY = os.getenv("OPENWEATHER_API_KEY")
+    if not API_KEY:
+        raise ValueError("OPENWEATHER_API_KEY not set")
+
     url = (
-        f"https://api.openweathermap.org/data/2.5/onecall"
-        f"?lat={lat}&lon={lon}&appid={API_KEY}"
-        f"&units=metric&exclude=minutely,daily,alerts"
+        f"https://api.openweathermap.org/data/2.5/forecast"
+        f"?lat={lat}&lon={lon}&appid={API_KEY}&units=metric"
     )
 
-    response = requests.get(url, timeout=10)
-    data = response.json()
-
-    if response.status_code != 200:
-        logging.error(f"API error for {city_name}: {data}")
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()  # Raise exception for HTTP errors
+        data = response.json()
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error fetching forecast for {city_name}: {e}")
         return []
 
-    now_utc = datetime.utcnow()
     records = []
-
-    for hour in data.get("hourly", []):
-        ts = datetime.utcfromtimestamp(hour["dt"])
-
-        # KEEP ONLY NOW and FUTURE
-        if ts < now_utc:
-            continue
+    for item in data.get("list", []):
+        ts = datetime.utcfromtimestamp(item["dt"])
+        main = item.get("main", {})
+        wind = item.get("wind", {})
+        clouds = item.get("clouds", {})
+        rain = item.get("rain", {})
 
         records.append({
             "city": city_name,
-            "temperature": hour["temp"],
-            "feels_like": hour["feels_like"],
-            "humidity": hour["humidity"],
-            "pressure": hour["pressure"],
-            "wind_speed": hour.get("wind_speed", 0),
-            "wind_deg": hour.get("wind_deg", 0),
-            "clouds": hour.get("clouds", 0),
-            "rain_1h": hour.get("rain", {}).get("1h", 0),
-            "description": hour["weather"][0]["description"],
+            "temperature": main.get("temp"),
+            "feels_like": main.get("feels_like"),
+            "humidity": main.get("humidity"),
+            "pressure": main.get("pressure"),
+            "wind_speed": wind.get("speed", 0),
+            "wind_deg": wind.get("deg", 0),
+            "clouds": clouds.get("all", 0),
+            "rain_1h": rain.get("3h", 0),
+            "description": item["weather"][0]["description"] if item.get("weather") else "",
             "timestamp": ts,
             "date": ts.date()
         })
 
+    logging.info(f"{city_name}: fetched {len(records)} forecast records")
     return records
 
-# Store in PostgreSQL
 def store_weather():
-    conn = psycopg2.connect(
-        host="postgres",
-        database=os.getenv("POSTGRES_DB"),
-        user=os.getenv("POSTGRES_USER"),
-        password=os.getenv("POSTGRES_PASSWORD"),
-    )
+    """
+    Fetch forecast for all active cities and store in PostgreSQL.
+    Uses batch inserts for better performance.
+    """
+    # Check API key
+    api_key = os.getenv("OPENWEATHER_API_KEY")
+    if not api_key:
+        raise ValueError("OPENWEATHER_API_KEY not set")
+
+    # Connect to Postgres
+    try:
+        conn = connect(
+            host="postgres",
+            database=os.getenv("POSTGRES_DB"),
+            user=os.getenv("POSTGRES_USER"),
+            password=os.getenv("POSTGRES_PASSWORD"),
+        )
+    except OperationalError as e:
+        logging.error(f"Database connection failed: {e}")
+        return
+
     cur = conn.cursor()
 
-    cur.execute("""
-        SELECT city_name, lat, lon
-        FROM cities
-        WHERE active = TRUE
-    """)
+    # Fetch active cities
+    cur.execute("SELECT city_name, lat, lon FROM cities WHERE active = TRUE")
     cities = cur.fetchall()
 
-    for city_name, lat, lon in cities:
-        hourly_data = fetch_hourly_forecast(lat, lon, city_name)
-        logging.info(f"{city_name}: {len(hourly_data)} future records")
+    total_records = 0
+    insert_query = """
+        INSERT INTO weather (
+            city, temperature, feels_like, humidity, pressure,
+            wind_speed, wind_deg, clouds, rain_1h,
+            description, date, timestamp
+        )
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        ON CONFLICT (city, timestamp) DO UPDATE SET
+            temperature = EXCLUDED.temperature,
+            feels_like = EXCLUDED.feels_like,
+            humidity = EXCLUDED.humidity,
+            pressure = EXCLUDED.pressure,
+            wind_speed = EXCLUDED.wind_speed,
+            wind_deg = EXCLUDED.wind_deg,
+            clouds = EXCLUDED.clouds,
+            rain_1h = EXCLUDED.rain_1h,
+            description = EXCLUDED.description
+    """
 
-        for h in hourly_data:
-            cur.execute("""
-                INSERT INTO weather (
-                    city, temperature, feels_like, humidity, pressure,
-                    wind_speed, wind_deg, clouds, rain_1h,
-                    description, date, timestamp
-                )
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                ON CONFLICT (city, timestamp) DO UPDATE SET
-                    temperature = EXCLUDED.temperature,
-                    feels_like = EXCLUDED.feels_like,
-                    humidity = EXCLUDED.humidity,
-                    pressure = EXCLUDED.pressure,
-                    wind_speed = EXCLUDED.wind_speed,
-                    wind_deg = EXCLUDED.wind_deg,
-                    clouds = EXCLUDED.clouds,
-                    rain_1h = EXCLUDED.rain_1h,
-                    description = EXCLUDED.description
-            """, (
-                h["city"], h["temperature"], h["feels_like"], h["humidity"],
-                h["pressure"], h["wind_speed"], h["wind_deg"], h["clouds"],
-                h["rain_1h"], h["description"], h["date"], h["timestamp"]
-            ))
+    for city_name, lat, lon in cities:
+        try:
+            hourly_data = fetch_hourly_forecast(lat, lon, city_name)
+            if not hourly_data:
+                logging.warning(f"No data fetched for {city_name}")
+                continue
+
+            # Prepare rows for batch insert
+            rows = [
+                (
+                    h["city"], h["temperature"], h["feels_like"], h["humidity"],
+                    h["pressure"], h["wind_speed"], h["wind_deg"], h["clouds"],
+                    h["rain_1h"], h["description"], h["date"], h["timestamp"]
+                ) for h in hourly_data
+            ]
+
+            execute_batch(cur, insert_query, rows, page_size=100)
+            total_records += len(rows)
+            logging.info(f"{city_name}: inserted/updated {len(rows)} records")
+
+        except Exception as e:
+            logging.error(f"Failed processing {city_name}: {e}")
 
     conn.commit()
     cur.close()
     conn.close()
+    logging.info(f"ETL complete: total records inserted/updated = {total_records}")
 
 # DAG
 default_args = {
